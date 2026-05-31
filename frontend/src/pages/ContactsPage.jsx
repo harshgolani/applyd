@@ -80,13 +80,13 @@ export default function ContactsPage() {
       <div>
         <div style={sectionHeaderStyle}>
           <span style={sectionTitleStyle}>All Contacts</span>
-          <span style={countBadgeStyle}>{contacts.length}</span>
+          <span style={countBadgeStyle}>{contacts.filter(c => !c.is_overdue).length}</span>
         </div>
-        {contacts.length === 0 ? (
+        {contacts.filter(c => !c.is_overdue).length === 0 ? (
           <div style={{ color: 'var(--text-muted)', fontSize: '14px' }}>
             No contacts yet. Add someone you've reached out to.
           </div>
-        ) : contacts.map(c => (
+        ) : contacts.filter(c => !c.is_overdue).map(c => (
           <ContactCard key={c.id} contact={c} onClick={() => navigate(`/contacts/${c.id}`)} />
         ))}
       </div>

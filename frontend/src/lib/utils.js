@@ -19,7 +19,7 @@ export function truncate(str, n = 80) {
 export const STAGE_LABELS = {
   applied: 'Applied',
   phone_screen: 'Phone Screen',
-  technical: 'Technical',
+  technical: 'Interviewing',
   offer: 'Offer',
   rejected: 'Rejected'
 }

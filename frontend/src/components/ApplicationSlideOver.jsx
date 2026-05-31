@@ -6,7 +6,7 @@ import { RELATIONSHIP_LABELS } from '../lib/utils'
 const STAGES = [
   { value: 'applied', label: 'Applied' },
   { value: 'phone_screen', label: 'Phone Screen' },
-  { value: 'technical', label: 'Technical' },
+  { value: 'technical', label: 'Interviewing' },
   { value: 'offer', label: 'Offer' },
   { value: 'rejected', label: 'Rejected' },
 ]
@@ -17,7 +17,7 @@ export default function ApplicationSlideOver({ application, onClose, onUpdate, o
     company: application.company || '',
     role: application.role || '',
     stage: application.stage || 'applied',
-    date_applied: application.date_applied ? application.date_applied.split('T')[0] : '',
+    date_applied: application.date_applied ? application.date_applied.split('T')[0] : new Date().toISOString().split('T')[0],
     resume_version: application.resume_version || '',
     notes: application.notes || '',
     next_steps: application.next_steps || '',

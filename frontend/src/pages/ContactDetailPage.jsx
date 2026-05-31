@@ -12,6 +12,7 @@ export default function ContactDetailPage() {
 
   const [contact, setContact] = useState(null)
   const [interactions, setInteractions] = useState([])
+  const [applications, setApplications] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [notes, setNotes] = useState('')
@@ -20,6 +21,8 @@ export default function ContactDetailPage() {
   const [newDate, setNewDate] = useState(new Date().toISOString().split('T')[0])
   const [logLoading, setLogLoading] = useState(false)
   const [selectedApp, setSelectedApp] = useState(null)
+  const [linkingApp, setLinkingApp] = useState(false)
+  const [selectedLinkId, setSelectedLinkId] = useState('')
   const notesRef = useRef('')
 
   useEffect(() => {
@@ -36,7 +39,14 @@ export default function ContactDetailPage() {
         setLoading(false)
       }
     }
+    async function fetchApplications() {
+      try {
+        const data = await apiFetch('/api/applications', {}, token)
+        setApplications(Array.isArray(data) ? data : [])
+      } catch {}
+    }
     fetchContact()
+    fetchApplications()
   }, [id, token])
 
   async function handleNotesBlur() {
@@ -76,6 +86,19 @@ export default function ContactDetailPage() {
         method: 'DELETE',
       }, token)
       setInteractions(prev => prev.filter(i => i.id !== interactionId))
+    } catch {}
+  }
+
+  async function handleLinkApplication() {
+    if (!selectedLinkId) return
+    try {
+      const updated = await apiFetch(`/api/contacts/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ application_id: parseInt(selectedLinkId, 10) }),
+      }, token)
+      setContact(updated)
+      setLinkingApp(false)
+      setSelectedLinkId('')
     } catch {}
   }
 
@@ -128,34 +151,71 @@ export default function ContactDetailPage() {
         </div>
       </div>
 
-      {contact.application_id && (
-        <div
-          onClick={async () => {
-            try {
-              const app = await apiFetch(`/api/applications/${contact.application_id}`, {}, token)
-              setSelectedApp(app)
-            } catch {}
-          }}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '6px 12px',
-            background: 'var(--bg-card)',
-            border: '1px solid var(--border)',
-            borderRadius: '6px',
-            cursor: 'pointer',
-            fontSize: '13px',
-            color: 'var(--text-muted)',
-            marginBottom: '28px',
-          }}
-          onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--border-hover)'}
-          onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
-        >
-          Re: {contact.application_company}
-          {contact.application_role ? ` — ${contact.application_role}` : ''}
-        </div>
-      )}
+      <div style={{ marginBottom: '28px' }}>
+        <div style={sectionTitleStyle}>Application</div>
+        {contact.application_id ? (
+          <div
+            onClick={async () => {
+              try {
+                const app = await apiFetch(`/api/applications/${contact.application_id}`, {}, token)
+                setSelectedApp(app)
+              } catch {}
+            }}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '6px 12px',
+              background: 'var(--bg-card)',
+              border: '1px solid var(--border)',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontSize: '13px',
+              color: 'var(--text-muted)',
+            }}
+            onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--border-hover)'}
+            onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
+          >
+            Re: {contact.application_company}
+            {contact.application_role ? ` — ${contact.application_role}` : ''}
+          </div>
+        ) : linkingApp ? (
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <select
+              value={selectedLinkId}
+              onChange={e => setSelectedLinkId(e.target.value)}
+              style={{ ...inputStyle, width: 'auto', flex: 1 }}
+            >
+              <option value="">Select an application…</option>
+              {applications.map(app => (
+                <option key={app.id} value={app.id}>
+                  {app.company}{app.role ? ` — ${app.role}` : ''}
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={handleLinkApplication}
+              disabled={!selectedLinkId}
+              style={primaryBtnStyle}
+            >
+              Link
+            </button>
+            <button
+              onClick={() => { setLinkingApp(false); setSelectedLinkId('') }}
+              style={ghostBtnStyle}
+            >
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setLinkingApp(true)}
+            style={ghostBtnStyle}
+          >
+            Link an application
+          </button>
+        )}
+      </div>
 
       <div style={{ marginBottom: '36px' }}>
         <div style={sectionTitleStyle}>Notes</div>
@@ -326,5 +386,15 @@ const primaryBtnStyle = {
   color: '#1a1008',
   fontSize: '14px',
   fontWeight: 600,
+  cursor: 'pointer',
+}
+
+const ghostBtnStyle = {
+  padding: '7px 14px',
+  background: 'transparent',
+  border: '1px solid var(--border)',
+  borderRadius: '6px',
+  color: 'var(--text-muted)',
+  fontSize: '13px',
   cursor: 'pointer',
 }

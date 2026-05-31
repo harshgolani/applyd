@@ -4,7 +4,7 @@ import { apiFetch } from '../lib/api'
 const STAGES = [
   { value: 'applied', label: 'Applied' },
   { value: 'phone_screen', label: 'Phone Screen' },
-  { value: 'technical', label: 'Technical' },
+  { value: 'technical', label: 'Interviewing' },
   { value: 'offer', label: 'Offer' },
   { value: 'rejected', label: 'Rejected' },
 ]

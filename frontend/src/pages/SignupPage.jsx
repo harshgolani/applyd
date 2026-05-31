@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
 export default function SignupPage() {
   const { signup } = useAuth()
   const navigate = useNavigate()
@@ -9,11 +11,39 @@ export default function SignupPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [nameError, setNameError] = useState('')
+  const [emailError, setEmailError] = useState('')
+  const [passwordError, setPasswordError] = useState('')
   const [loading, setLoading] = useState(false)
 
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
+    let valid = true
+
+    if (!name.trim()) {
+      setNameError('Name is required')
+      valid = false
+    } else {
+      setNameError('')
+    }
+
+    if (!EMAIL_REGEX.test(email)) {
+      setEmailError('Please enter a valid email address')
+      valid = false
+    } else {
+      setEmailError('')
+    }
+
+    if (password.length < 8) {
+      setPasswordError('Password must be at least 8 characters')
+      valid = false
+    } else {
+      setPasswordError('')
+    }
+
+    if (!valid) return
+
     setLoading(true)
     try {
       await signup(email, name, password)
@@ -59,31 +89,37 @@ export default function SignupPage() {
           <input
             type="text"
             value={name}
-            onChange={e => setName(e.target.value)}
-            required
+            onChange={e => { setName(e.target.value); setNameError('') }}
             style={inputStyle}
             placeholder="Your name"
           />
+          {nameError && (
+            <div style={{ color: 'var(--danger)', fontSize: '13px', marginTop: '4px' }}>{nameError}</div>
+          )}
 
           <label style={labelStyle}>Email</label>
           <input
-            type="email"
+            type="text"
             value={email}
-            onChange={e => setEmail(e.target.value)}
-            required
+            onChange={e => { setEmail(e.target.value); setEmailError('') }}
             style={inputStyle}
             placeholder="you@example.com"
           />
+          {emailError && (
+            <div style={{ color: 'var(--danger)', fontSize: '13px', marginTop: '4px' }}>{emailError}</div>
+          )}
 
           <label style={labelStyle}>Password</label>
           <input
             type="password"
             value={password}
-            onChange={e => setPassword(e.target.value)}
-            required
+            onChange={e => { setPassword(e.target.value); setPasswordError('') }}
             style={inputStyle}
             placeholder="••••••••"
           />
+          {passwordError && (
+            <div style={{ color: 'var(--danger)', fontSize: '13px', marginTop: '4px' }}>{passwordError}</div>
+          )}
 
           <button
             type="submit"
