@@ -6,18 +6,15 @@ export default function ApplicationCard({ application, onClick }) {
 
   return (
     <div
+      className="app-card"
       onClick={onClick}
       style={{
         background: 'var(--bg)',
-        border: '1px solid var(--border)',
         borderRadius: '8px',
         padding: '12px',
         marginBottom: '8px',
         cursor: 'pointer',
-        transition: 'border-color 0.15s ease',
       }}
-      onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--border-hover)'}
-      onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
         <span style={{ fontWeight: 500, fontSize: '14px', color: 'var(--text)' }}>

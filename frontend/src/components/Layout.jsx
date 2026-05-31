@@ -1,10 +1,24 @@
+import { useState } from 'react'
 import Sidebar from './Sidebar'
 
 export default function Layout({ children }) {
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+
   return (
     <div style={{ display: 'flex', minHeight: '100vh', width: '100%' }}>
-      <Sidebar />
-      <main style={{ flex: 1, overflowY: 'auto', padding: '2rem', maxWidth: '100%' }}>
+      <div
+        className={`sidebar-backdrop${sidebarOpen ? ' sidebar-backdrop--open' : ''}`}
+        onClick={() => setSidebarOpen(false)}
+      />
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <main className="main-content">
+        <button
+          className="hamburger"
+          onClick={() => setSidebarOpen(true)}
+          aria-label="Open menu"
+        >
+          <span /><span /><span />
+        </button>
         {children}
       </main>
     </div>

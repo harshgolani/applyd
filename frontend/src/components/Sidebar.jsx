@@ -1,7 +1,7 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
-export default function Sidebar() {
+export default function Sidebar({ isOpen, onClose }) {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
 
@@ -23,24 +23,36 @@ export default function Sidebar() {
   })
 
   return (
-    <div style={{
-      width: '220px',
-      minWidth: '220px',
-      minHeight: '100vh',
-      background: 'var(--bg-sidebar)',
-      borderRight: '1px solid var(--border)',
-      padding: '24px 16px',
-      display: 'flex',
-      flexDirection: 'column',
-    }}>
-      <div style={{ color: 'var(--accent)', fontSize: '20px', fontWeight: 600, marginBottom: '32px' }}>
-        Applyd
+    <div
+      className={`sidebar${isOpen ? ' sidebar--open' : ''}`}
+      style={{
+        width: '220px',
+        minWidth: '220px',
+        minHeight: '100vh',
+        background: 'var(--bg-sidebar)',
+        borderRight: '1px solid var(--border)',
+        padding: '24px 16px',
+      }}
+    >
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+        <div style={{ color: 'var(--accent)', fontSize: '20px', fontWeight: 600 }}>
+          Applyd
+        </div>
+        {isOpen && (
+          <button
+            onClick={onClose}
+            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '18px', padding: 0 }}
+            aria-label="Close menu"
+          >
+            ✕
+          </button>
+        )}
       </div>
 
       <nav style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-        <NavLink to="/" end style={navLinkStyle}>Today</NavLink>
-        <NavLink to="/applications" style={navLinkStyle}>Applications</NavLink>
-        <NavLink to="/contacts" style={navLinkStyle}>Contacts</NavLink>
+        <NavLink to="/" end style={navLinkStyle} onClick={onClose}>Today</NavLink>
+        <NavLink to="/applications" style={navLinkStyle} onClick={onClose}>Applications</NavLink>
+        <NavLink to="/contacts" style={navLinkStyle} onClick={onClose}>Contacts</NavLink>
       </nav>
 
       <div style={{ marginTop: 'auto' }}>

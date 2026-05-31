@@ -3,19 +3,15 @@ import { RELATIONSHIP_LABELS, timeAgo } from '../lib/utils'
 export default function ContactCard({ contact, onClick }) {
   return (
     <div
+      className={`contact-card${contact.is_overdue ? ' contact-card--overdue' : ''}`}
       onClick={onClick}
       style={{
         background: 'var(--bg-card)',
-        border: '1px solid var(--border)',
-        borderLeft: contact.is_overdue ? '2px solid var(--overdue)' : '1px solid var(--border)',
         borderRadius: '8px',
         padding: '12px 16px',
         marginBottom: '8px',
         cursor: 'pointer',
-        transition: 'border-color 0.15s ease',
       }}
-      onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--border-hover)'}
-      onMouseLeave={e => e.currentTarget.style.borderColor = contact.is_overdue ? 'var(--overdue)' : 'var(--border)'}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
         <span style={{ fontWeight: 500, fontSize: '14px' }}>{contact.name}</span>

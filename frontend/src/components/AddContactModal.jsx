@@ -68,8 +68,9 @@ export default function AddContactModal({ onClose, onSuccess, token, application
         border: '1px solid var(--border)',
         borderRadius: '12px',
         padding: '32px',
-        width: '440px',
-        maxWidth: '90vw',
+        width: 'min(440px, calc(100vw - 32px))',
+        maxHeight: '90vh',
+        overflowY: 'auto',
       }}>
         <div style={{ fontSize: '18px', fontWeight: 600, marginBottom: '24px' }}>
           Add Contact

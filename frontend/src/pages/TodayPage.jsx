@@ -40,7 +40,7 @@ export default function TodayPage() {
   })
 
   return (
-    <div style={{ maxWidth: '720px' }}>
+    <div className="page-container" style={{ maxWidth: '720px' }}>
       <div style={{ marginBottom: '40px' }}>
         <h1 style={{ fontSize: '24px', fontWeight: 600, margin: '0 0 6px', color: 'var(--text)' }}>
           Good morning, {user?.name?.split(' ')[0] || user?.name}
@@ -69,10 +69,9 @@ export default function TodayPage() {
               {data.overdue_contacts.map(contact => (
                 <div
                   key={contact.id}
+                  className="today-card today-card--overdue"
                   onClick={() => navigate(`/contacts/${contact.id}`)}
-                  style={{ ...itemCardStyle, borderLeft: '2px solid var(--overdue)' }}
-                  onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--overdue)'}
-                  onMouseLeave={e => { e.currentTarget.style.borderLeftColor = 'var(--overdue)'; e.currentTarget.style.borderColor = 'var(--overdue)' }}
+                  style={itemCardStyle}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <div>
@@ -100,10 +99,9 @@ export default function TodayPage() {
                 return (
                   <div
                     key={app.id}
+                    className="today-card"
                     onClick={() => setSelectedApp(app)}
                     style={itemCardStyle}
-                    onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--border-hover)'}
-                    onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                       <div>
@@ -137,10 +135,9 @@ export default function TodayPage() {
               {data.pending_next_steps.map(app => (
                 <div
                   key={app.id}
+                  className="today-card"
                   onClick={() => setSelectedApp(app)}
                   style={itemCardStyle}
-                  onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--border-hover)'}
-                  onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
                 >
                   <div style={{ fontWeight: 500, fontSize: '14px', marginBottom: '3px' }}>{app.company}</div>
                   {app.role && <div style={{ color: 'var(--text-muted)', fontSize: '13px', marginBottom: '6px' }}>{app.role}</div>}
@@ -203,12 +200,10 @@ function Section({ title, count, children }) {
 
 const itemCardStyle = {
   background: 'var(--bg-card)',
-  border: '1px solid var(--border)',
   borderRadius: '8px',
   padding: '14px 16px',
   marginBottom: '8px',
   cursor: 'pointer',
-  transition: 'border-color 0.15s ease',
 }
 
 const relBadgeStyle = {
