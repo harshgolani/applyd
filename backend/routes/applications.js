@@ -105,7 +105,7 @@ router.put('/:id', auth, async (req, res) => {
            updated_at    = NOW()
        WHERE id = $8 AND user_id = $9
        RETURNING *`,
-      [company, role, stage, date_applied, resume_version, notes, next_steps, id, req.user.id]
+      [company || null, role || null, stage || null, date_applied || null, resume_version || null, notes || null, next_steps || null, id, req.user.id]
     )
     const updatedApplication = result.rows[0]
     broadcast(req.user.id, 'application:updated', updatedApplication)
