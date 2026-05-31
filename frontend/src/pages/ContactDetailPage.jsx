@@ -23,6 +23,8 @@ export default function ContactDetailPage() {
   const [selectedApp, setSelectedApp] = useState(null)
   const [linkingApp, setLinkingApp] = useState(false)
   const [selectedLinkId, setSelectedLinkId] = useState('')
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [deleteLoading, setDeleteLoading] = useState(false)
   const notesRef = useRef('')
 
   useEffect(() => {
@@ -87,6 +89,18 @@ export default function ContactDetailPage() {
       }, token)
       setInteractions(prev => prev.filter(i => i.id !== interactionId))
     } catch {}
+  }
+
+  async function handleDeleteContact() {
+    setDeleteLoading(true)
+    try {
+      await apiFetch(`/api/contacts/${id}`, {
+        method: 'DELETE',
+      }, token)
+      navigate('/contacts')
+    } catch {
+      setDeleteLoading(false)
+    }
   }
 
   async function handleLinkApplication() {
@@ -282,6 +296,64 @@ export default function ContactDetailPage() {
             onDelete={() => handleDeleteInteraction(interaction.id)}
           />
         ))}
+      </div>
+
+      <div style={{ marginTop: '48px', paddingTop: '24px', borderTop: '1px solid var(--border)' }}>
+        <div style={{
+          fontSize: '11px',
+          fontWeight: 600,
+          letterSpacing: '0.08em',
+          textTransform: 'uppercase',
+          color: 'var(--danger)',
+          marginBottom: '12px',
+        }}>
+          Danger Zone
+        </div>
+        {confirmDelete ? (
+          <div>
+            <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '12px' }}>
+              Are you sure? This will delete the contact and all interaction history. This cannot be undone.
+            </div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                onClick={handleDeleteContact}
+                disabled={deleteLoading}
+                style={{
+                  padding: '7px 14px',
+                  background: 'transparent',
+                  border: '1px solid var(--danger)',
+                  borderRadius: '6px',
+                  color: 'var(--danger)',
+                  fontSize: '13px',
+                  cursor: 'pointer',
+                }}
+              >
+                {deleteLoading ? 'Deleting...' : 'Confirm delete'}
+              </button>
+              <button
+                onClick={() => setConfirmDelete(false)}
+                style={ghostBtnStyle}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            onClick={() => setConfirmDelete(true)}
+            style={{
+              padding: '7px 14px',
+              background: 'transparent',
+              border: '1px solid var(--danger)',
+              borderRadius: '6px',
+              color: 'var(--danger)',
+              fontSize: '13px',
+              cursor: 'pointer',
+            }}
+          >
+            Delete contact
+          </button>
+        )}
       </div>
 
       {selectedApp && (

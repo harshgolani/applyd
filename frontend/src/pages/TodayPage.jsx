@@ -26,6 +26,26 @@ export default function TodayPage() {
   const [selectedApp, setSelectedApp] = useState(null)
   const [showAddApp, setShowAddApp] = useState(false)
   const [showAddContact, setShowAddContact] = useState(false)
+  const [snoozedIds, setSnoozedIds] = useState(new Set())
+  const [snoozeOpenId, setSnoozeOpenId] = useState(null)
+
+  useEffect(() => {
+    function handleClickOutside() { setSnoozeOpenId(null) }
+    if (snoozeOpenId) document.addEventListener('click', handleClickOutside)
+    return () => document.removeEventListener('click', handleClickOutside)
+  }, [snoozeOpenId])
+
+  async function handleSnooze(contactId, days) {
+    try {
+      await apiFetch(`/api/contacts/${contactId}/snooze`, {
+        method: 'PATCH',
+        body: JSON.stringify({ days }),
+      }, token)
+      setSnoozedIds(prev => new Set([...prev, contactId]))
+    } catch (err) {
+      console.error('Snooze failed', err)
+    }
+  }
 
   useEffect(() => {
     async function fetchData() {
@@ -56,7 +76,9 @@ export default function TodayPage() {
 
   // Build unified action list
   const actions = [
-    ...data.overdue_contacts.map(c => ({
+    ...data.overdue_contacts
+      .filter(c => !snoozedIds.has(c.id))
+      .map(c => ({
       type: 'contact',
       id: c.id,
       label: `Follow up with ${c.name}`,
@@ -65,7 +87,7 @@ export default function TodayPage() {
       urgency: `${Math.floor(c.days_since_contact || 0)}d overdue`,
       urgencyColor: 'var(--overdue)',
       borderColor: 'var(--overdue)',
-      onClick: () => navigate(`/contacts/${c.id}`)
+      onClick: () => navigate(`/contacts/${c.id}`),
     })),
     ...data.stale_applications.map(a => ({
       type: 'application',
@@ -203,6 +225,75 @@ export default function TodayPage() {
                         }}>
                           {action.badge}
                         </span>
+                      )}
+                      {action.type === 'contact' && (
+                        <div style={{ position: 'relative' }}>
+                          <button
+                            onClick={e => {
+                              e.stopPropagation()
+                              setSnoozeOpenId(snoozeOpenId === action.id ? null : action.id)
+                            }}
+                            style={{
+                              background: 'transparent',
+                              border: '1px solid var(--border)',
+                              borderRadius: '4px',
+                              color: 'var(--text-muted)',
+                              fontSize: '11px',
+                              padding: '3px 8px',
+                              cursor: 'pointer',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            Snooze ▾
+                          </button>
+                          {snoozeOpenId === action.id && (
+                            <div
+                              style={{
+                                position: 'absolute',
+                                right: 0,
+                                top: '100%',
+                                marginTop: '4px',
+                                background: 'var(--bg-card)',
+                                border: '1px solid var(--border)',
+                                borderRadius: '6px',
+                                zIndex: 50,
+                                minWidth: '120px',
+                                overflow: 'hidden',
+                              }}
+                              onClick={e => e.stopPropagation()}
+                            >
+                              {[
+                                { label: '3 days', days: 3 },
+                                { label: '7 days', days: 7 },
+                                { label: 'Forever', days: null },
+                              ].map(opt => (
+                                <button
+                                  key={opt.label}
+                                  onClick={e => {
+                                    e.stopPropagation()
+                                    handleSnooze(action.id, opt.days)
+                                    setSnoozeOpenId(null)
+                                  }}
+                                  style={{
+                                    display: 'block',
+                                    width: '100%',
+                                    padding: '8px 14px',
+                                    background: 'transparent',
+                                    border: 'none',
+                                    color: 'var(--text)',
+                                    fontSize: '13px',
+                                    cursor: 'pointer',
+                                    textAlign: 'left',
+                                  }}
+                                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+                                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                >
+                                  {opt.label}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       )}
                       <span style={{ color: action.urgencyColor, fontSize: '12px', whiteSpace: 'nowrap' }}>
                         {action.urgency}
