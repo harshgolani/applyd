@@ -108,32 +108,59 @@ router.get('/:id', auth, async (req, res) => {
 router.put('/:id', auth, async (req, res) => {
   try {
     const { id } = req.params
-    const { name, company, role, relationship_type, notes, follow_up_days } = req.body
 
     const existing = await pool.query(
-      'SELECT id FROM contacts WHERE id = $1 AND user_id = $2',
+      'SELECT * FROM contacts WHERE id = $1 AND user_id = $2',
       [id, req.user.id]
     )
     if (existing.rows.length === 0) {
       return res.status(404).json({ error: 'Contact not found' })
     }
 
+    const current = existing.rows[0]
+    const body = req.body
+
+    const name = 'name' in body ? (body.name || null) : current.name
+    const company = 'company' in body ? (body.company || null) : current.company
+    const role = 'role' in body ? (body.role || null) : current.role
+    const relationship_type = 'relationship_type' in body ? (body.relationship_type || null) : current.relationship_type
+    const notes = 'notes' in body ? (body.notes || null) : current.notes
+    const follow_up_days = 'follow_up_days' in body ? (body.follow_up_days || null) : current.follow_up_days
+
+    // application_id: if key present in body use it (null = unlink, id = link), otherwise keep current
+    let application_id = current.application_id
+    if ('application_id' in body) {
+      if (body.application_id === null || body.application_id === '') {
+        application_id = null
+      } else {
+        const appCheck = await pool.query(
+          'SELECT id FROM applications WHERE id = $1 AND user_id = $2',
+          [body.application_id, req.user.id]
+        )
+        if (appCheck.rows.length === 0) {
+          return res.status(404).json({ error: 'Application not found' })
+        }
+        application_id = body.application_id
+      }
+    }
+
     const result = await pool.query(
       `UPDATE contacts
-       SET name              = COALESCE($1, name),
-           company           = COALESCE($2, company),
-           role              = COALESCE($3, role),
-           relationship_type = COALESCE($4, relationship_type),
-           notes             = COALESCE($5, notes),
-           follow_up_days    = COALESCE($6, follow_up_days)
-       WHERE id = $7 AND user_id = $8
+       SET name              = $1,
+           company           = $2,
+           role              = $3,
+           relationship_type = $4,
+           notes             = $5,
+           follow_up_days    = $6,
+           application_id    = $7
+       WHERE id = $8 AND user_id = $9
        RETURNING *,
          CASE
            WHEN last_contacted_at IS NOT NULL
            AND EXTRACT(EPOCH FROM (NOW() - last_contacted_at))/86400 > follow_up_days
            THEN true ELSE false
          END as is_overdue`,
-      [name, company, role, relationship_type, notes, follow_up_days, id, req.user.id]
+      [name, company, role, relationship_type, notes, follow_up_days, application_id, id, req.user.id]
     )
     return res.json(result.rows[0])
   } catch (err) {
