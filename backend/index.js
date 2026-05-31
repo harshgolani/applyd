@@ -10,7 +10,7 @@ const server = http.createServer(app)
 app.set('trust proxy', 1)
 
 app.use(cors({
-  origin: ['http://localhost:5173', 'https://applyd.netlify.app'],
+  origin: ['http://localhost:5173', 'http://localhost:5174', 'https://applyd.netlify.app'],
   credentials: true
 }))
 app.use(express.json())
