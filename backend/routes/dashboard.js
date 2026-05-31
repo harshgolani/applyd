@@ -15,6 +15,7 @@ router.get('/', auth, async (req, res) => {
          WHERE c.user_id = $1
            AND c.last_contacted_at IS NOT NULL
            AND EXTRACT(EPOCH FROM (NOW() - c.last_contacted_at))/86400 > c.follow_up_days
+           AND (c.snoozed_until IS NULL OR c.snoozed_until < NOW())
          ORDER BY c.last_contacted_at ASC`,
         [req.user.id]
       ),

@@ -10,8 +10,15 @@ const IS_OVERDUE_SQL = `
   CASE
     WHEN c.last_contacted_at IS NOT NULL
     AND EXTRACT(EPOCH FROM (NOW() - c.last_contacted_at))/86400 > c.follow_up_days
+    AND (c.snoozed_until IS NULL OR c.snoozed_until < NOW())
     THEN true ELSE false
   END as is_overdue`
+
+const IS_SNOOZED_SQL = `
+  CASE
+    WHEN c.snoozed_until IS NOT NULL AND c.snoozed_until > NOW()
+    THEN true ELSE false
+  END as is_snoozed`
 
 // POST /api/contacts
 router.post('/', auth, async (req, res) => {
@@ -58,6 +65,7 @@ router.get('/', auth, async (req, res) => {
     const result = await pool.query(
       `SELECT c.*,
         ${IS_OVERDUE_SQL},
+        ${IS_SNOOZED_SQL},
         a.company as application_company,
         a.role as application_role
        FROM contacts c
@@ -80,6 +88,7 @@ router.get('/:id', auth, async (req, res) => {
     const result = await pool.query(
       `SELECT c.*,
         ${IS_OVERDUE_SQL},
+        ${IS_SNOOZED_SQL},
         a.company as application_company,
         a.role as application_role
        FROM contacts c
@@ -161,6 +170,60 @@ router.put('/:id', auth, async (req, res) => {
            THEN true ELSE false
          END as is_overdue`,
       [name, company, role, relationship_type, notes, follow_up_days, application_id, id, req.user.id]
+    )
+    return res.json(result.rows[0])
+  } catch (err) {
+    console.error(err)
+    return res.status(500).json({ error: 'Server error' })
+  }
+})
+
+// PATCH /api/contacts/:id/snooze
+router.patch('/:id/snooze', auth, async (req, res) => {
+  try {
+    const { id } = req.params
+    const { days } = req.body // days: 3, 7, or null (forever)
+
+    const existing = await pool.query(
+      'SELECT id FROM contacts WHERE id = $1 AND user_id = $2',
+      [id, req.user.id]
+    )
+    if (existing.rows.length === 0) {
+      return res.status(404).json({ error: 'Contact not found' })
+    }
+
+    let snoozed_until
+    if (days === null || days === undefined) {
+      snoozed_until = '9999-12-31'
+    } else {
+      snoozed_until = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString()
+    }
+
+    const result = await pool.query(
+      `UPDATE contacts SET snoozed_until = $1 WHERE id = $2 AND user_id = $3 RETURNING *`,
+      [snoozed_until, id, req.user.id]
+    )
+    return res.json(result.rows[0])
+  } catch (err) {
+    console.error(err)
+    return res.status(500).json({ error: 'Server error' })
+  }
+})
+
+// PATCH /api/contacts/:id/unsnooze
+router.patch('/:id/unsnooze', auth, async (req, res) => {
+  try {
+    const { id } = req.params
+    const existing = await pool.query(
+      'SELECT id FROM contacts WHERE id = $1 AND user_id = $2',
+      [id, req.user.id]
+    )
+    if (existing.rows.length === 0) {
+      return res.status(404).json({ error: 'Contact not found' })
+    }
+    const result = await pool.query(
+      `UPDATE contacts SET snoozed_until = NULL WHERE id = $1 AND user_id = $2 RETURNING *`,
+      [id, req.user.id]
     )
     return res.json(result.rows[0])
   } catch (err) {
