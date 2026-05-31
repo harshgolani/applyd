@@ -2,38 +2,98 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { apiFetch } from '../lib/api'
-import { daysSince, truncate, STAGE_COLORS } from '../lib/utils'
+import { daysSince, truncate, STAGE_LABELS, STAGE_COLORS } from '../lib/utils'
 import ApplicationSlideOver from '../components/ApplicationSlideOver'
+import AddApplicationModal from '../components/AddApplicationModal'
+import AddContactModal from '../components/AddContactModal'
+
+function getGreeting(name) {
+  const hour = new Date().getHours()
+  const first = name?.split(' ')[0] || name || ''
+  if (hour >= 5 && hour < 12) return `Good morning, ${first}`
+  if (hour >= 12 && hour < 17) return `Good afternoon, ${first}`
+  if (hour >= 17 && hour < 22) return `Good evening, ${first}`
+  return `Hey, ${first}`
+}
 
 export default function TodayPage() {
   const { user, token } = useAuth()
   const navigate = useNavigate()
   const [data, setData] = useState({ overdue_contacts: [], stale_applications: [], pending_next_steps: [] })
+  const [applications, setApplications] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [selectedApp, setSelectedApp] = useState(null)
+  const [showAddApp, setShowAddApp] = useState(false)
+  const [showAddContact, setShowAddContact] = useState(false)
 
   useEffect(() => {
-    async function fetchDashboard() {
+    async function fetchData() {
       try {
-        const result = await apiFetch('/api/dashboard', {}, token)
+        const [dashResult, appsResult] = await Promise.all([
+          apiFetch('/api/dashboard', {}, token),
+          apiFetch('/api/applications', {}, token)
+        ])
         setData({
-          overdue_contacts: Array.isArray(result.overdue_contacts) ? result.overdue_contacts : [],
-          stale_applications: Array.isArray(result.stale_applications) ? result.stale_applications : [],
-          pending_next_steps: Array.isArray(result.pending_next_steps) ? result.pending_next_steps : [],
+          overdue_contacts: Array.isArray(dashResult.overdue_contacts) ? dashResult.overdue_contacts : [],
+          stale_applications: Array.isArray(dashResult.stale_applications) ? dashResult.stale_applications : [],
+          pending_next_steps: Array.isArray(dashResult.pending_next_steps) ? dashResult.pending_next_steps : [],
         })
+        setApplications(Array.isArray(appsResult) ? appsResult : [])
       } catch (err) {
         setError(err.message)
       } finally {
         setLoading(false)
       }
     }
-    fetchDashboard()
+    fetchData()
   }, [token])
 
-  const isEmpty = data.overdue_contacts.length === 0 &&
-    data.stale_applications.length === 0 &&
-    data.pending_next_steps.length === 0
+  // Stat pill calculations
+  const activeCount = applications.filter(a => !['offer', 'rejected'].includes(a.stage)).length
+  const followUpCount = data.overdue_contacts.length
+  const interviewingCount = applications.filter(a => a.stage === 'technical').length
+
+  // Build unified action list
+  const actions = [
+    ...data.overdue_contacts.map(c => ({
+      type: 'contact',
+      id: c.id,
+      label: `Follow up with ${c.name}`,
+      sub: [c.company, c.role].filter(Boolean).join(' · '),
+      badge: c.relationship_type,
+      urgency: `${Math.floor(c.days_since_contact || 0)}d overdue`,
+      urgencyColor: 'var(--overdue)',
+      borderColor: 'var(--overdue)',
+      onClick: () => navigate(`/contacts/${c.id}`)
+    })),
+    ...data.stale_applications.map(a => ({
+      type: 'application',
+      id: `app-${a.id}`,
+      label: `Check on ${a.company}`,
+      sub: a.role || '',
+      badge: STAGE_LABELS[a.stage] || a.stage,
+      badgeColor: STAGE_COLORS[a.stage],
+      urgency: `No activity for ${Math.floor(daysSince(a.updated_at))}d`,
+      urgencyColor: 'var(--text-muted)',
+      borderColor: 'var(--border)',
+      onClick: () => setSelectedApp(a)
+    })),
+    ...data.pending_next_steps.map(a => ({
+      type: 'nextstep',
+      id: `ns-${a.id}`,
+      label: `Act on next step for ${a.company}`,
+      sub: truncate(a.next_steps, 70),
+      badge: STAGE_LABELS[a.stage] || a.stage,
+      badgeColor: STAGE_COLORS[a.stage],
+      urgency: `Updated ${Math.floor(daysSince(a.updated_at))}d ago`,
+      urgencyColor: 'var(--text-muted)',
+      borderColor: 'var(--border)',
+      onClick: () => setSelectedApp(a)
+    }))
+  ]
+
+  const isEmpty = actions.length === 0
 
   const dateStr = new Date().toLocaleDateString('en-US', {
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
@@ -41,118 +101,134 @@ export default function TodayPage() {
 
   return (
     <div style={{ padding: '2rem 2.5rem', maxWidth: 760, width: '100%' }}>
-      <div style={{ marginBottom: '40px' }}>
+
+      {/* Header */}
+      <div style={{ marginBottom: '32px' }}>
         <h1 style={{ fontSize: '24px', fontWeight: 600, margin: '0 0 6px', color: 'var(--text)' }}>
-          Good morning, {user?.name?.split(' ')[0] || user?.name}
+          {getGreeting(user?.name)}
         </h1>
         <div style={{ color: 'var(--text-muted)', fontSize: '14px' }}>{dateStr}</div>
       </div>
+
+      {/* Stat Pills */}
+      {!loading && !error && (
+        <div style={{ display: 'flex', gap: '12px', marginBottom: '40px', flexWrap: 'wrap' }}>
+          <StatPill label="Active" value={activeCount} onClick={() => navigate('/applications')} />
+          <StatPill label="Follow-ups Due" value={followUpCount} onClick={() => navigate('/contacts')} accent={followUpCount > 0} />
+          <StatPill label="Interviewing" value={interviewingCount} onClick={() => navigate('/applications')} />
+        </div>
+      )}
 
       {loading && (
         <div style={{ color: 'var(--text-muted)', fontSize: '14px' }}>Loading...</div>
       )}
 
       {error && (
-        <div style={{ color: 'var(--danger)', fontSize: '14px' }}>{error}</div>
+        <div style={{ color: 'var(--danger)', fontSize: '14px', marginBottom: '24px' }}>{error}</div>
       )}
 
-      {!loading && !error && isEmpty && (
-        <div style={{ color: 'var(--text-muted)', marginTop: '80px', textAlign: 'center', fontSize: '15px' }}>
-          Your job search is on track. Nothing needs attention today.
-        </div>
-      )}
-
-      {!loading && !error && !isEmpty && (
+      {/* Action List */}
+      {!loading && !error && (
         <>
-          {data.overdue_contacts.length > 0 && (
-            <Section title="Overdue Follow-ups" count={data.overdue_contacts.length}>
-              {data.overdue_contacts.map(contact => (
+          {isEmpty ? (
+            <div style={{ textAlign: 'center', marginTop: '60px', marginBottom: '60px' }}>
+              <div style={{ fontSize: '32px', marginBottom: '16px' }}>✓</div>
+              <div style={{ color: 'var(--text)', fontSize: '16px', fontWeight: 500, marginBottom: '8px' }}>
+                You are on top of everything.
+              </div>
+              <div style={{ color: 'var(--text-muted)', fontSize: '14px', marginBottom: '32px' }}>
+                Nothing needs attention today.
+              </div>
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+                <button
+                  onClick={() => navigate('/applications')}
+                  style={ghostButtonStyle}
+                >
+                  View Applications
+                </button>
+                <button
+                  onClick={() => navigate('/contacts')}
+                  style={ghostButtonStyle}
+                >
+                  View Contacts
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div style={{ marginBottom: '40px' }}>
+              <div style={{
+                fontSize: '11px',
+                fontWeight: 600,
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                color: 'var(--text-muted)',
+                marginBottom: '16px'
+              }}>
+                Needs attention
+              </div>
+              {actions.map(action => (
                 <div
-                  key={contact.id}
-                  className="today-card today-card--overdue"
-                  onClick={() => navigate(`/contacts/${contact.id}`)}
-                  style={itemCardStyle}
+                  key={action.id}
+                  className="today-card"
+                  onClick={action.onClick}
+                  style={{
+                    background: 'var(--bg-card)',
+                    borderRadius: '8px',
+                    padding: '14px 16px',
+                    marginBottom: '8px',
+                    cursor: 'pointer',
+                    borderLeft: `3px solid ${action.borderColor}`,
+                  }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <div>
-                      <div style={{ fontWeight: 500, fontSize: '14px', marginBottom: '3px' }}>{contact.name}</div>
-                      <div style={{ color: 'var(--text-muted)', fontSize: '13px' }}>
-                        {[contact.company, contact.role].filter(Boolean).join(' · ')}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 500, fontSize: '14px', marginBottom: '4px', color: 'var(--text)' }}>
+                        {action.label}
                       </div>
+                      {action.sub && (
+                        <div style={{ color: 'var(--text-muted)', fontSize: '13px' }}>
+                          {action.sub}
+                        </div>
+                      )}
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0, marginLeft: '16px' }}>
-                      <span style={relBadgeStyle}>{contact.relationship_type}</span>
-                      <span style={{ color: 'var(--overdue)', fontSize: '12px' }}>
-                        {Math.floor(contact.days_since_contact || 0)}d overdue
+                      {action.badge && (
+                        <span style={{
+                          fontSize: '11px',
+                          padding: '2px 8px',
+                          borderRadius: '99px',
+                          background: action.badgeColor ? action.badgeColor + '26' : 'rgba(255,255,255,0.05)',
+                          color: action.badgeColor || 'var(--text-muted)',
+                          fontWeight: 500,
+                        }}>
+                          {action.badge}
+                        </span>
+                      )}
+                      <span style={{ color: action.urgencyColor, fontSize: '12px', whiteSpace: 'nowrap' }}>
+                        {action.urgency}
                       </span>
                     </div>
                   </div>
                 </div>
               ))}
-            </Section>
+            </div>
           )}
 
-          {data.stale_applications.length > 0 && (
-            <Section title="Stale Applications" count={data.stale_applications.length}>
-              {data.stale_applications.map(app => {
-                const stageColor = STAGE_COLORS[app.stage] || '#7a6a65'
-                return (
-                  <div
-                    key={app.id}
-                    className="today-card"
-                    onClick={() => setSelectedApp(app)}
-                    style={itemCardStyle}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                      <div>
-                        <div style={{ fontWeight: 500, fontSize: '14px', marginBottom: '3px' }}>{app.company}</div>
-                        {app.role && <div style={{ color: 'var(--text-muted)', fontSize: '13px' }}>{app.role}</div>}
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0, marginLeft: '16px' }}>
-                        <span style={{
-                          fontSize: '11px',
-                          fontWeight: 500,
-                          padding: '2px 8px',
-                          borderRadius: '99px',
-                          background: stageColor + '26',
-                          color: stageColor,
-                        }}>
-                          {app.stage?.replace('_', ' ')}
-                        </span>
-                        <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>
-                          No activity for {Math.floor(daysSince(app.updated_at))}d
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                )
-              })}
-            </Section>
-          )}
-
-          {data.pending_next_steps.length > 0 && (
-            <Section title="Pending Next Steps" count={data.pending_next_steps.length}>
-              {data.pending_next_steps.map(app => (
-                <div
-                  key={app.id}
-                  className="today-card"
-                  onClick={() => setSelectedApp(app)}
-                  style={itemCardStyle}
-                >
-                  <div style={{ fontWeight: 500, fontSize: '14px', marginBottom: '3px' }}>{app.company}</div>
-                  {app.role && <div style={{ color: 'var(--text-muted)', fontSize: '13px', marginBottom: '6px' }}>{app.role}</div>}
-                  {app.next_steps && (
-                    <div style={{ color: 'var(--text)', fontSize: '13px', marginBottom: '4px' }}>
-                      {truncate(app.next_steps, 80)}
-                    </div>
-                  )}
-                  <div style={{ color: 'var(--text-muted)', fontSize: '12px' }}>
-                    Updated {Math.floor(daysSince(app.updated_at))}d ago
-                  </div>
-                </div>
-              ))}
-            </Section>
-          )}
+          {/* Quick Add */}
+          <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
+            <button
+              onClick={() => setShowAddApp(true)}
+              style={ghostButtonStyle}
+            >
+              + Add Application
+            </button>
+            <button
+              onClick={() => setShowAddContact(true)}
+              style={ghostButtonStyle}
+            >
+              + Add Contact
+            </button>
+          </div>
         </>
       )}
 
@@ -166,50 +242,64 @@ export default function TodayPage() {
           onDelete={() => setSelectedApp(null)}
         />
       )}
+
+      {showAddApp && (
+        <AddApplicationModal
+          token={token}
+          onClose={() => setShowAddApp(false)}
+          onSuccess={(newApp) => {
+            setApplications(prev => [newApp, ...prev])
+            setShowAddApp(false)
+          }}
+        />
+      )}
+
+      {showAddContact && (
+        <AddContactModal
+          token={token}
+          applications={applications}
+          onClose={() => setShowAddContact(false)}
+          onSuccess={() => setShowAddContact(false)}
+        />
+      )}
     </div>
   )
 }
 
-function Section({ title, count, children }) {
+function StatPill({ label, value, onClick, accent }) {
   return (
-    <div style={{ marginBottom: '40px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
-        <span style={{
-          fontSize: '11px',
-          fontWeight: 600,
-          letterSpacing: '0.08em',
-          textTransform: 'uppercase',
-          color: 'var(--text-muted)',
-        }}>
-          {title}
-        </span>
-        <span style={{
-          background: 'rgba(196,160,144,0.1)',
-          color: 'var(--accent)',
-          fontSize: '11px',
-          padding: '2px 8px',
-          borderRadius: '99px',
-        }}>
-          {count}
-        </span>
+    <button
+      onClick={onClick}
+      style={{
+        background: accent ? 'rgba(196,160,144,0.1)' : 'var(--bg-card)',
+        border: `1px solid ${accent ? 'var(--accent)' : 'var(--border)'}`,
+        borderRadius: '8px',
+        padding: '12px 20px',
+        cursor: 'pointer',
+        textAlign: 'left',
+        transition: 'border-color 0.15s ease',
+        minWidth: '120px',
+      }}
+      onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--accent)'}
+      onMouseLeave={e => e.currentTarget.style.borderColor = accent ? 'var(--accent)' : 'var(--border)'}
+    >
+      <div style={{ fontSize: '22px', fontWeight: 600, color: accent ? 'var(--accent)' : 'var(--text)', marginBottom: '4px' }}>
+        {value}
       </div>
-      {children}
-    </div>
+      <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 500 }}>
+        {label}
+      </div>
+    </button>
   )
 }
 
-const itemCardStyle = {
-  background: 'var(--bg-card)',
-  borderRadius: '8px',
-  padding: '14px 16px',
-  marginBottom: '8px',
-  cursor: 'pointer',
-}
-
-const relBadgeStyle = {
-  fontSize: '11px',
-  padding: '2px 8px',
-  borderRadius: '99px',
-  background: 'rgba(255,255,255,0.05)',
+const ghostButtonStyle = {
+  background: 'transparent',
+  border: '1px solid var(--border)',
+  borderRadius: '6px',
+  padding: '8px 16px',
   color: 'var(--text-muted)',
+  fontSize: '13px',
+  cursor: 'pointer',
+  transition: 'color 0.15s, border-color 0.15s',
 }

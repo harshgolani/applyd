@@ -50,7 +50,7 @@ export default function Sidebar({ isOpen, onClose }) {
       </div>
 
       <nav style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-        <NavLink to="/" end style={navLinkStyle} onClick={onClose}>Today</NavLink>
+        <NavLink to="/" end style={navLinkStyle} onClick={onClose}>Home</NavLink>
         <NavLink to="/applications" style={navLinkStyle} onClick={onClose}>Applications</NavLink>
         <NavLink to="/contacts" style={navLinkStyle} onClick={onClose}>Contacts</NavLink>
       </nav>
