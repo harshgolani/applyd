@@ -23,8 +23,12 @@ export default function ApplicationsPage() {
   useEffect(() => {
     async function fetchApplications() {
       try {
-        const data = await apiFetch('/api/applications', {}, token)
+        const [data, archivedData] = await Promise.all([
+          apiFetch('/api/applications', {}, token),
+          apiFetch('/api/applications/archived', {}, token)
+        ])
         setApplications(Array.isArray(data) ? data : [])
+        setArchivedApplications(Array.isArray(archivedData) ? archivedData : [])
       } catch (err) {
         setError(err.message)
       } finally {
@@ -47,6 +51,10 @@ export default function ApplicationsPage() {
         prev.some(a => a.id === data.id) ? prev : [data, ...prev]
       )
       setSelectedApp(prev => prev?.id === data.id ? null : prev)
+    } else if (type === 'application:unarchived') {
+      setArchivedApplications(prev => prev.filter(a => a.id !== data.id))
+      setApplications(prev => [data, ...prev])
+      setSelectedApp(null)
     } else if (type === 'application:deleted') {
       setApplications(prev => prev.filter(a => a.id !== data.id))
       setSelectedApp(prev => prev?.id === data.id ? null : prev)
@@ -67,6 +75,12 @@ export default function ApplicationsPage() {
       )
       setApplications(prev => prev.filter(a => a.id !== selectedApp.id))
     }
+    setSelectedApp(null)
+  }
+
+  function handleUnarchive(unarchivedApp) {
+    setArchivedApplications(prev => prev.filter(a => a.id !== unarchivedApp.id))
+    setApplications(prev => [unarchivedApp, ...prev])
     setSelectedApp(null)
   }
 
@@ -178,7 +192,6 @@ export default function ApplicationsPage() {
         ))}
       </CollapsibleSection>
 
-      {/* TODO: add GET /api/applications/archived endpoint in V2 */}
       <CollapsibleSection
         title="Archived"
         count={archivedApplications.length}
@@ -201,6 +214,7 @@ export default function ApplicationsPage() {
           onClose={() => setSelectedApp(null)}
           onUpdate={handleUpdate}
           onArchive={handleArchive}
+          onUnarchive={handleUnarchive}
           onDelete={handleDelete}
         />
       )}

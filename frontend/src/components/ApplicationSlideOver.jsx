@@ -11,7 +11,7 @@ const STAGES = [
   { value: 'rejected', label: 'Rejected' },
 ]
 
-export default function ApplicationSlideOver({ application, onClose, onUpdate, onArchive, onDelete, token }) {
+export default function ApplicationSlideOver({ application, onClose, onUpdate, onArchive, onUnarchive, onDelete, token }) {
   const navigate = useNavigate()
   const [form, setForm] = useState({
     company: application.company || '',
@@ -28,6 +28,7 @@ export default function ApplicationSlideOver({ application, onClose, onUpdate, o
   const [saveError, setSaveError] = useState('')
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [actionLoading, setActionLoading] = useState(false)
+  const isArchived = application.archived === true
 
   useEffect(() => {
     async function fetchContacts() {
@@ -60,6 +61,18 @@ export default function ApplicationSlideOver({ application, onClose, onUpdate, o
       setSaveError(err.message)
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function handleUnarchive() {
+    setActionLoading(true)
+    try {
+      const updated = await apiFetch(`/api/applications/${application.id}/unarchive`, {
+        method: 'PATCH',
+      }, token)
+      onUnarchive(updated)
+    } catch {
+      setActionLoading(false)
     }
   }
 
@@ -153,7 +166,7 @@ export default function ApplicationSlideOver({ application, onClose, onUpdate, o
             type="date"
             value={form.date_applied}
             onChange={e => handleChange('date_applied', e.target.value)}
-            style={inputStyle}
+            style={{ ...inputStyle, colorScheme: 'dark', cursor: 'pointer' }}
           />
 
           <label style={labelStyle}>Resume Version</label>
@@ -233,6 +246,15 @@ export default function ApplicationSlideOver({ application, onClose, onUpdate, o
                     Cancel
                   </button>
                 </div>
+              </div>
+            ) : isArchived ? (
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button onClick={handleUnarchive} disabled={actionLoading} style={ghostBtnStyle}>
+                  Unarchive
+                </button>
+                <button onClick={() => setConfirmDelete(true)} style={dangerBtnStyle}>
+                  Delete
+                </button>
               </div>
             ) : (
               <div style={{ display: 'flex', gap: '8px' }}>
