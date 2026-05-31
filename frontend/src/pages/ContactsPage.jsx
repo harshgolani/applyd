@@ -43,7 +43,7 @@ export default function ContactsPage() {
   }
 
   return (
-    <div className="page-container" style={{ maxWidth: '720px' }}>
+    <div style={{ padding: '2rem 2.5rem', width: '100%' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '28px' }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px' }}>
           <h1 style={{ fontSize: '24px', fontWeight: 600, margin: 0, color: 'var(--text)' }}>

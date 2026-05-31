@@ -5,7 +5,7 @@ export default function Layout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', width: '100%' }}>
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', width: '100%' }}>
       <div
         className={`sidebar-backdrop${sidebarOpen ? ' sidebar-backdrop--open' : ''}`}
         onClick={() => setSidebarOpen(false)}

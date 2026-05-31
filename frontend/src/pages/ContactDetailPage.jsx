@@ -113,7 +113,7 @@ export default function ContactDetailPage() {
   if (!contact) return null
 
   return (
-    <div style={{ maxWidth: '640px' }}>
+    <div style={{ padding: '2rem 2.5rem', maxWidth: 760, width: '100%' }}>
       <button
         onClick={() => navigate('/contacts')}
         style={{

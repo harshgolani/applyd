@@ -89,7 +89,7 @@ export default function ApplicationsPage() {
   }
 
   return (
-    <div className="page-container">
+    <div style={{ padding: '2rem 2.5rem', width: '100%', display: 'flex', flexDirection: 'column', height: '100%' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '28px' }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px' }}>
           <h1 style={{ fontSize: '24px', fontWeight: 600, margin: 0, color: 'var(--text)' }}>
@@ -111,7 +111,7 @@ export default function ApplicationsPage() {
         <div style={{ color: 'var(--danger)', fontSize: '14px', marginBottom: '16px' }}>{error}</div>
       )}
 
-      <div style={{ display: 'flex', gap: '16px', overflowX: 'auto', paddingBottom: '16px' }}>
+      <div style={{ display: 'flex', gap: '16px', overflowX: 'auto', overflowY: 'visible', paddingBottom: '16px', flex: 1, alignItems: 'flex-start' }}>
         {KANBAN_STAGES.map(stage => {
           const stageApps = kanbanApps.filter(a => a.stage === stage)
           const color = STAGE_COLORS[stage]

@@ -40,7 +40,7 @@ export default function TodayPage() {
   })
 
   return (
-    <div className="page-container" style={{ maxWidth: '720px' }}>
+    <div style={{ padding: '2rem 2.5rem', maxWidth: 760, width: '100%' }}>
       <div style={{ marginBottom: '40px' }}>
         <h1 style={{ fontSize: '24px', fontWeight: 600, margin: '0 0 6px', color: 'var(--text)' }}>
           Good morning, {user?.name?.split(' ')[0] || user?.name}
