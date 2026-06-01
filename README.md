@@ -3,7 +3,7 @@
 Job search tracker for tech job seekers. Tracks both formal applications and outreach contacts in one place, with a daily home screen that tells you exactly what needs attention.
 
 **Live:** https://applyd-app.netlify.app
-**Backend:** https://applyd-backend.up.railway.app
+**Backend:** https://applyd-production-0eab.up.railway.app
 **PRD:** https://grandiose-package-4db.notion.site/Applyd-PRD-371ff64b23ab805981c9e7da9367799e
 
 ---
